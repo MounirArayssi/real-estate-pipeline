@@ -1,12 +1,22 @@
 import os
 import requests
 import psycopg2
+import logging
 from psycopg2.extras import execute_values
 from dotenv import load_dotenv
 from datetime import datetime
 
 
 load_dotenv()
+
+
+# --- Logging -------
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s",
+                    handlers= [logging.FileHandler("pipeline.log"),
+                               logging.StreamHandler(),],)
+
+logger = logging.getLogger(__name__)
+
 
 # --- API Config -------
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
@@ -47,7 +57,7 @@ def fetch_listings(postal_code, status=None, limit=15):
 
     }
 
-    print(f"    Fetching {postal_code} (limit={limit}...")
+    logger.info(f"    Fetching {postal_code} (limit={limit}...")
     response = requests.post(API_URL, json=payload, headers=HEADERS, timeout=30)
     response.raise_for_status()
 
@@ -56,7 +66,7 @@ def fetch_listings(postal_code, status=None, limit=15):
     results = data.get("data", {}).get("home_search", {}).get("results", [])
     total = data.get("data", {}).get("home_search", {}).get("total", 0)
 
-    print(f"    Got {len(results)}cof {total} total listings")
+    logger.info(f"    Got {len(results)}cof {total} total listings")
 
     return results
 
@@ -112,7 +122,7 @@ def parse_listing(raw):
 def load_to_db(listings):
     """Insert parsed listings into PostgreSQL using upsert."""
     if not listings:
-        print("  No listings to load.")
+        logger.info("  No listings to load.")
         return 0
 
     conn = psycopg2.connect(**DB_CONFIG)
@@ -162,9 +172,9 @@ def load_to_db(listings):
 
 def run():
     """Main pipeline: fetch → parse → load for each zip code."""
-    print(f"{'='*50}")
-    print(f"Real Estate Pipeline Run - {datetime.now()}")
-    print(f"{'='*50}")
+    logger.info(f"{'='*50}")
+    logger.info(f"Real Estate Pipeline Run - {datetime.now()}")
+    logger.info(f"{'='*50}")
 
     total_fetched = 0
     total_loaded = 0
@@ -185,16 +195,16 @@ def run():
 
             total_fetched += len(parsed)
             total_loaded += loaded
-            print(f"  ✓ {zip_code}: {len(parsed)} fetched, {loaded} upserted\n")
+            logger.info(f"[OK] {zip_code}: {len(parsed)} fetched, {loaded} upserted")
 
         except requests.exceptions.RequestException as e:
-            print(f"  ✗ {zip_code}: API error - {e}\n")
+            logger.error(f"[FAIL] {zip_code}: API error - {e}")
         except psycopg2.Error as e:
-            print(f"  ✗ {zip_code}: DB error - {e}\n")
+            logger.error(f"[FAIL] {zip_code}: DB error - {e}")
 
-    print(f"{'='*50}")
-    print(f"Done! {total_fetched} fetched, {total_loaded} upserted")
-    print(f"{'='*50}")
+    logger.info(f"{'='*50}")
+    logger.info(f"Done! {total_fetched} fetched, {total_loaded} upserted")
+    logger.info(f"{'='*50}")
 
 
 if __name__ == "__main__":
