@@ -3,3 +3,5 @@
 
 # Environments
 .env
+
+run_pipeline.bat
