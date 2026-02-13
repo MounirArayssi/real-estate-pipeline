@@ -3,3 +3,9 @@
 
 # Environments
 .env
+
+run_pipeline.bat
+
+.pytest_cache
+
+*.log
