@@ -48,7 +48,7 @@ real-estate-pipeline/
 ├── src/
 │   ├── __init__.py
 │   ├── scraper.py              # API extraction and PostgreSQL loading
-│   └── transforms.py           # Computed columns and analytical views
+│   └── transform.py           # Computed columns and analytical views
 ├── test/
 │   └── test_scraper.py         # Unit tests for data parsing
 ├── .env.example                # Environment variable template
